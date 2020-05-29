@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	exoscaleimport "github.com/exoscale/packer-post-processor-exoscale-import/exoscale-import"
+	exoscaleimport "github.com/exoscale/packer-post-processor-exoscale-import"
 	"github.com/hashicorp/packer/packer/plugin"
 )
 
