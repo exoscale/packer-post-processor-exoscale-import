@@ -88,6 +88,9 @@ github.com/bgentry/go-netrc/netrc
 github.com/cheggaaa/pb
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/deepmap/oapi-codegen v1.3.7-0.20200311141508-ee90a3f9f1ae
+github.com/deepmap/oapi-codegen/pkg/runtime
+github.com/deepmap/oapi-codegen/pkg/types
 # github.com/digitalocean/go-libvirt v0.0.0-20190626172931-4d226dd6c437
 github.com/digitalocean/go-libvirt
 github.com/digitalocean/go-libvirt/internal/constants
@@ -96,9 +99,10 @@ github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2
 github.com/digitalocean/go-qemu/qmp
 # github.com/dylanmei/iso8601 v0.1.0
 github.com/dylanmei/iso8601
-# github.com/exoscale/egoscale v1.19.0
+# github.com/exoscale/egoscale v0.25.0
 ## explicit
 github.com/exoscale/egoscale
+github.com/exoscale/egoscale/internal/v2
 # github.com/gofrs/flock v0.7.1
 github.com/gofrs/flock
 # github.com/gofrs/uuid v3.2.0+incompatible
@@ -219,6 +223,11 @@ github.com/jstemmer/go-junit-report/formatter
 github.com/jstemmer/go-junit-report/parser
 # github.com/kr/fs v0.0.0-20131111012553-2788f0dbd169
 github.com/kr/fs
+# github.com/labstack/echo/v4 v4.1.11
+github.com/labstack/echo/v4
+# github.com/labstack/gommon v0.3.0
+github.com/labstack/gommon/color
+github.com/labstack/gommon/log
 # github.com/masterzen/azure-sdk-for-go v0.0.0-20161014135628-ee4f0065d00c
 github.com/masterzen/azure-sdk-for-go/core/http
 github.com/masterzen/azure-sdk-for-go/core/tls
@@ -227,6 +236,10 @@ github.com/masterzen/simplexml/dom
 # github.com/masterzen/winrm v0.0.0-20180224160350-7e40f93ae939
 github.com/masterzen/winrm
 github.com/masterzen/winrm/soap
+# github.com/mattn/go-colorable v0.1.4
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.10
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
 # github.com/mitchellh/go-fs v0.0.0-20180402234041-7b48fa161ea7
@@ -255,6 +268,8 @@ github.com/packer-community/winrmcp/winrmcp
 # github.com/pierrec/lz4 v2.0.5+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/pkg/sftp v0.0.0-20160118190721-e84cc8c755ca
 github.com/pkg/sftp
 # github.com/pmezard/go-difflib v1.0.0
@@ -272,6 +287,10 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
+# github.com/valyala/bytebufferpool v1.0.0
+github.com/valyala/bytebufferpool
+# github.com/valyala/fasttemplate v1.1.0
+github.com/valyala/fasttemplate
 # github.com/zclconf/go-cty v1.4.1
 ## explicit
 github.com/zclconf/go-cty/cty
@@ -298,6 +317,8 @@ go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
 # golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
+golang.org/x/crypto/acme
+golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
