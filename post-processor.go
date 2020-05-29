@@ -29,7 +29,7 @@ import (
 
 var (
 	defaultTemplateZone = "ch-gva-2"
-	defaultAPIEndpoint  = "https://api.exoscale.com/compute"
+	defaultAPIEndpoint  = "https://api.exoscale.com/v1"
 	defaultSOSEndpoint  = "https://sos-" + defaultTemplateZone + ".exo.io"
 )
 

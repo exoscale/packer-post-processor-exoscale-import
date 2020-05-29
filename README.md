@@ -43,7 +43,7 @@ Required:
 Optional:
 
 - `api_endpoint` (string) - The API endpoint used to communicate with the
-  Exoscale API. Defaults to `https://api.exoscale.com/compute`.
+  Exoscale API. Defaults to `https://api.exoscale.com/v1`.
 
 - `sos_endpoint` (string) - The endpoint used to communicate with SOS.
   Defaults to `https://sos-ch-gva-2.exo.io`.

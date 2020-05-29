@@ -14,11 +14,6 @@ builds:
   goarch:
     - amd64
 
-signs:
-- cmd: gpg
-  args: ["-u", "ops@exoscale.ch", "--detach-sign", "${artifact}"]
-  artifacts: all
-
 checksum:
   name_template: 'checksums.txt'
 
