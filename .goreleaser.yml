@@ -1,0 +1,27 @@
+builds:
+- binary: packer-post-processor-exoscale-import
+  env:
+  - CGO_ENABLED=0
+  - GO_PKG=github.com/exoscale/packer-post-processor-exoscale-import
+  flags:
+    - -mod=vendor
+  ldflags:
+    - -s -w -X {{.Env.GO_PKG}}/version.Version={{.Version}} -X {{.Env.GO_PKG}}/version.Commit={{.FullCommit}}
+  goos:
+    - darwin
+    - linux
+    - openbsd
+  goarch:
+    - amd64
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-snapshot"
+
+release:
+  draft: true
+  github:
+    owner: exoscale
+    name: packer-post-processor-exoscale-import
