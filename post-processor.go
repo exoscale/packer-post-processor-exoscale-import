@@ -89,7 +89,6 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 		"image_bucket":         &p.config.ImageBucket,
 		"template_zone":        &p.config.TemplateZone,
 		"template_name":        &p.config.TemplateName,
-		"template_description": &p.config.TemplateDescription,
 	}
 
 	errs := new(packer.MultiError)
