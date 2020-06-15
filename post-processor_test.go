@@ -27,6 +27,7 @@ func testConfig() map[string]interface{} {
 		"api_secret":           testAPISecret,
 		"image_bucket":         testImageBucket,
 		"template_name":        testTemplateName,
+		"template_zone":        testTemplateZone,
 		"template_description": testTemplateDescription,
 	}
 }
@@ -85,6 +86,7 @@ func TestConfigureWithoutAPISecretOption(t *testing.T) {
 
 	require.Error(t, err)
 }
+
 func TestConfigureWithoutImageBucketOption(t *testing.T) {
 	p := new(PostProcessor)
 	config := testConfig()
@@ -95,32 +97,12 @@ func TestConfigureWithoutImageBucketOption(t *testing.T) {
 
 	require.Error(t, err)
 }
+
 func TestConfigureWithoutTemplateNameOption(t *testing.T) {
 	p := new(PostProcessor)
 	config := testConfig()
 
 	delete(config, "template_name")
-
-	err := p.Configure(config)
-
-	require.Error(t, err)
-}
-func TestConfigureWithoutTemplateDescriptionOption(t *testing.T) {
-	p := new(PostProcessor)
-	config := testConfig()
-
-	delete(config, "template_description")
-
-	err := p.Configure(config)
-
-	require.Error(t, err)
-}
-
-func TestConfigureWithbadOption(t *testing.T) {
-	p := new(PostProcessor)
-	config := testConfig()
-
-	config["test"] = "test"
 
 	err := p.Configure(config)
 
