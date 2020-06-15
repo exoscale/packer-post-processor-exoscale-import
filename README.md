@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/exoscale/packer-post-processor-exoscale-import/workflows/CI/badge.svg)](https://github.com/exoscale/packer-post-processor-exoscale-import/actions?query=workflow%3ACI)
 
-This is Exoscale import plugin to be used with HashiCorp [Packer](https://www.packer.io/). This plugin takes an image artifact from the QEMU, Artifice, or File builders and imports it to Exoscale.
+The `exoscale-import` post-processor plugin can be used with HashiCorp [Packer](https://www.packer.io/) to take an image artifact from the *QEMU*, *Artifice*, or *File* builders and import it to Exoscale as a new [Compute instance template](https://community.exoscale.com/documentation/compute/custom-templates/).
 
 This guide assumes you have already used Packer and have a basic understanding of how Packer works. Otherwise, first read this guide on how to [get started with Packer](https://www.packer.io/intro/getting-started/).
 
