@@ -49,16 +49,22 @@ func testAccCheckPostProcessorArtifact(t *testing.T, artifact packer.Artifact) e
 		return fmt.Errorf("artifact template ID is not set")
 	}
 
+	if a.template.ZoneName != testAccTemplateZone {
+		return fmt.Errorf("expected template zone %q, got %q",
+			testAccTemplateZone,
+			a.template.ZoneName)
+	}
+
 	if a.template.Name != testAccTemplateName {
 		return fmt.Errorf("expected template name %q, got %q",
 			testAccTemplateName,
 			a.template.Name)
 	}
 
-	if a.template.ZoneName != testAccTemplateZone {
-		return fmt.Errorf("expected template zone %q, got %q",
-			testAccTemplateZone,
-			a.template.ZoneName)
+	if a.template.DisplayText != testAccTemplateDescription {
+		return fmt.Errorf("expected template description %q, got %q",
+			testAccTemplateDescription,
+			a.template.DisplayText)
 	}
 
 	if username, ok := a.template.Details["username"]; !ok {
