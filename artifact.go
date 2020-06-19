@@ -1,11 +1,17 @@
-// nolint
+package exoscale
 
-package exoscaleimport
+import (
+	"context"
+	"fmt"
+
+	"github.com/exoscale/egoscale"
+)
 
 const BuilderId = "packer.post-processor.exoscale-import"
 
 type Artifact struct {
-	id string
+	template egoscale.Template
+	exo      *egoscale.Client
 }
 
 func (a *Artifact) BuilderId() string {
@@ -13,7 +19,7 @@ func (a *Artifact) BuilderId() string {
 }
 
 func (a *Artifact) Id() string {
-	return a.id
+	return a.template.ID.String()
 }
 
 func (a *Artifact) Files() []string {
@@ -21,7 +27,10 @@ func (a *Artifact) Files() []string {
 }
 
 func (a *Artifact) String() string {
-	return a.id
+	return fmt.Sprintf("%s @ %s (%s)",
+		a.template.Name,
+		a.template.ZoneName,
+		a.template.ID.String())
 }
 
 func (a *Artifact) State(name string) interface{} {
@@ -29,5 +38,10 @@ func (a *Artifact) State(name string) interface{} {
 }
 
 func (a *Artifact) Destroy() error {
+	_, err := a.exo.RequestWithContext(context.Background(), &egoscale.DeleteTemplate{ID: a.template.ID})
+	if err != nil {
+		return fmt.Errorf("unable to delete template: %s", err)
+	}
+
 	return nil
 }
