@@ -15,7 +15,7 @@ jobs:
         version: v1.27
         args: --timeout 2m
     - name: Run tests
-      run: env ; make lint test-verbose test-acc
+      run: make lint test-verbose test-acc
   build:
     runs-on: ubuntu-latest
     steps:
