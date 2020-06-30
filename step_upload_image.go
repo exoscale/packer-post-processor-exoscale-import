@@ -58,10 +58,14 @@ func (s *stepUploadImage) Run(ctx context.Context, state multistep.StateBag) mul
 		return multistep.ActionHalt
 	}
 
-	sess := session.Must(session.NewSessionWithOptions(session.Options{Config: aws.Config{
+	sess, err := session.NewSessionWithOptions(session.Options{Config: aws.Config{
 		Region:      aws.String(config.TemplateZone),
 		Endpoint:    aws.String(config.SOSEndpoint),
-		Credentials: credentials.NewStaticCredentials(config.APIKey, config.APISecret, "")}}))
+		Credentials: credentials.NewStaticCredentials(config.APIKey, config.APISecret, "")}})
+	if err != nil {
+		ui.Error(fmt.Sprintf("unable to initialize session: %v", err))
+		return multistep.ActionHalt
+	}
 
 	uploader := s3manager.NewUploader(sess)
 	output, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{

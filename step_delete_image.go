@@ -31,10 +31,14 @@ func (s *stepDeleteImage) Run(ctx context.Context, state multistep.StateBag) mul
 
 	ui.Say("Deleting uploaded template image")
 
-	sess := session.Must(session.NewSessionWithOptions(session.Options{Config: aws.Config{
+	sess, err := session.NewSessionWithOptions(session.Options{Config: aws.Config{
 		Region:      aws.String(config.TemplateZone),
 		Endpoint:    aws.String(config.SOSEndpoint),
-		Credentials: credentials.NewStaticCredentials(config.APIKey, config.APISecret, "")}}))
+		Credentials: credentials.NewStaticCredentials(config.APIKey, config.APISecret, "")}})
+	if err != nil {
+		ui.Error(fmt.Sprintf("unable to initialize session: %v", err))
+		return multistep.ActionHalt
+	}
 
 	svc := s3.New(sess)
 	if _, err := svc.DeleteObject(&s3.DeleteObjectInput{
