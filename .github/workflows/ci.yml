@@ -3,7 +3,7 @@ name: CI
 on: [push]
 
 jobs:
-  unit-test:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -15,7 +15,10 @@ jobs:
         version: v1.27
         args: --timeout 2m
     - name: Run tests
-      run: make test-verbose
+      run: make lint test-verbose test-acc
+      env:
+        EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
+        EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}
   build:
     runs-on: ubuntu-latest
     steps:
