@@ -1,5 +1,6 @@
 builds:
 - binary: packer-post-processor-exoscale-import
+  main: ./cmd/packer-post-processor-exoscale-import
   env:
   - CGO_ENABLED=0
   - GO_PKG=github.com/exoscale/packer-post-processor-exoscale-import
@@ -13,6 +14,11 @@ builds:
     - openbsd
   goarch:
     - amd64
+
+signs:
+- cmd: gpg
+  args: ["-u", "ops@exoscale.ch", "--detach-sign", "${artifact}"]
+  artifacts: all
 
 checksum:
   name_template: 'checksums.txt'
