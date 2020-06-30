@@ -41,7 +41,6 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, a packer.
 	switch a.BuilderId() {
 	case qemu.BuilderId, file.BuilderId, artifice.BuilderId:
 		break
-
 	default:
 		err := fmt.Errorf("unsupported artifact type %q: this post-processor only imports "+
 			"artifacts from QEMU/file builders and Artifice post-processor", a.BuilderId())

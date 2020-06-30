@@ -68,4 +68,6 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 }
 
 // ConfigSpec returns HCL object spec
-func (p *PostProcessor) ConfigSpec() hcldec.ObjectSpec { return p.config.FlatMapstructure().HCL2Spec() }
+func (p *PostProcessor) ConfigSpec() hcldec.ObjectSpec {
+	return p.config.FlatMapstructure().HCL2Spec()
+}
