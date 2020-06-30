@@ -16,6 +16,9 @@ jobs:
         args: --timeout 2m
     - name: Run tests
       run: make lint test-verbose test-acc
+      env:
+        EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
+        EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}
   build:
     runs-on: ubuntu-latest
     steps:
