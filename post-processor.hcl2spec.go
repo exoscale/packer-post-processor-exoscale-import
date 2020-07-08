@@ -26,7 +26,7 @@ type FlatConfig struct {
 	TemplateName            *string           `mapstructure:"template_name" cty:"template_name" hcl:"template_name"`
 	TemplateDescription     *string           `mapstructure:"template_description" cty:"template_description" hcl:"template_description"`
 	TemplateUsername        *string           `mapstructure:"template_username" cty:"template_username" hcl:"template_username"`
-	TemplateBootMode        *string           `mapstructure:"template_bootmode" cty:"template_bootmode" hcl:"template_bootmode"`
+	TemplateBootMode        *string           `mapstructure:"template_boot_mode" cty:"template_boot_mode" hcl:"template_boot_mode"`
 	TemplateDisablePassword *bool             `mapstructure:"template_disable_password" cty:"template_disable_password" hcl:"template_disable_password"`
 	TemplateDisableSSHKey   *bool             `mapstructure:"template_disable_sshkey" cty:"template_disable_sshkey" hcl:"template_disable_sshkey"`
 }
@@ -60,7 +60,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"template_name":              &hcldec.AttrSpec{Name: "template_name", Type: cty.String, Required: false},
 		"template_description":       &hcldec.AttrSpec{Name: "template_description", Type: cty.String, Required: false},
 		"template_username":          &hcldec.AttrSpec{Name: "template_username", Type: cty.String, Required: false},
-		"template_bootmode":          &hcldec.AttrSpec{Name: "template_bootmode", Type: cty.String, Required: false},
+		"template_boot_mode":         &hcldec.AttrSpec{Name: "template_boot_mode", Type: cty.String, Required: false},
 		"template_disable_password":  &hcldec.AttrSpec{Name: "template_disable_password", Type: cty.Bool, Required: false},
 		"template_disable_sshkey":    &hcldec.AttrSpec{Name: "template_disable_sshkey", Type: cty.Bool, Required: false},
 	}

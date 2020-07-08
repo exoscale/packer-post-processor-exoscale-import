@@ -11,7 +11,10 @@ import (
 	"github.com/hashicorp/packer/packer"
 )
 
-var defaultAPIEndpoint = "https://api.exoscale.com/v1"
+const (
+	defaultAPIEndpoint      = "https://api.exoscale.com/v1"
+	defaultTemplateBootMode = "legacy"
+)
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
@@ -26,7 +29,7 @@ type Config struct {
 	TemplateName            string `mapstructure:"template_name"`
 	TemplateDescription     string `mapstructure:"template_description"`
 	TemplateUsername        string `mapstructure:"template_username"`
-	TemplateBootMode        string `mapstructure:"template_bootmode"`
+	TemplateBootMode        string `mapstructure:"template_boot_mode"`
 	TemplateDisablePassword bool   `mapstructure:"template_disable_password"`
 	TemplateDisableSSHKey   bool   `mapstructure:"template_disable_sshkey"`
 }
@@ -62,7 +65,7 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 	}
 
 	if config.TemplateBootMode == "" {
-		config.TemplateBootMode = "legacy"
+		config.TemplateBootMode = defaultTemplateBootMode
 	}
 
 	if len(errs.Errors) > 0 {
