@@ -8,15 +8,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/deepmap/oapi-codegen/pkg/runtime"
-	"github.com/pkg/errors"
 )
 
 // AntiAffinityGroup defines model for anti-affinity-group.
@@ -46,6 +45,13 @@ type ApiKey struct {
 // ApiKey_Tags defines model for ApiKey.Tags.
 type ApiKey_Tags struct {
 	AdditionalProperties map[string]string `json:"-"`
+}
+
+// CdnConfiguration defines model for cdn-configuration.
+type CdnConfiguration struct {
+	Bucket *string `json:"bucket,omitempty"`
+	Fqdn   *string `json:"fqdn,omitempty"`
+	Status *string `json:"status,omitempty"`
 }
 
 // ElasticIp defines model for elastic-ip.
@@ -187,20 +193,20 @@ type Lock struct {
 	ResourceType *string `json:"resource-type,omitempty"`
 }
 
-// Resource defines model for resource.
-type Resource struct {
-	Command *string `json:"command,omitempty"`
-	Id      *string `json:"id,omitempty"`
-	Link    *string `json:"link,omitempty"`
-}
-
-// Result defines model for result.
-type Result struct {
+// Operation defines model for operation.
+type Operation struct {
 	Id        *string   `json:"id,omitempty"`
 	Message   *string   `json:"message,omitempty"`
 	Reason    *string   `json:"reason,omitempty"`
 	Reference *Resource `json:"reference,omitempty"`
 	State     *string   `json:"state,omitempty"`
+}
+
+// Resource defines model for resource.
+type Resource struct {
+	Command *string `json:"command,omitempty"`
+	Id      *string `json:"id,omitempty"`
+	Link    *string `json:"link,omitempty"`
 }
 
 // ReverseDns defines model for reverse-dns.
@@ -252,6 +258,13 @@ type Snapshot struct {
 // Snapshot_Tags defines model for Snapshot.Tags.
 type Snapshot_Tags struct {
 	AdditionalProperties map[string]string `json:"-"`
+}
+
+// SnapshotExport defines model for snapshot-export.
+type SnapshotExport struct {
+	Id           *string `json:"id,omitempty"`
+	Md5sum       *string `json:"md5sum,omitempty"`
+	PresignedUrl *string `json:"presigned-url,omitempty"`
 }
 
 // SshKey defines model for ssh-key.
@@ -335,6 +348,9 @@ type GenerateApiKeyJSONBody ApiKey
 
 // ImportSshKeyJSONBody defines parameters for ImportSshKey.
 type ImportSshKeyJSONBody ApiKey
+
+// CreateCdnConfigurationJSONBody defines parameters for CreateCdnConfiguration.
+type CreateCdnConfigurationJSONBody CdnConfiguration
 
 // AllocateElasticIpJSONBody defines parameters for AllocateElasticIp.
 type AllocateElasticIpJSONBody ElasticIp
@@ -509,6 +525,9 @@ type GenerateApiKeyJSONRequestBody GenerateApiKeyJSONBody
 
 // ImportSshKeyRequestBody defines body for ImportSshKey for application/json ContentType.
 type ImportSshKeyJSONRequestBody ImportSshKeyJSONBody
+
+// CreateCdnConfigurationRequestBody defines body for CreateCdnConfiguration for application/json ContentType.
+type CreateCdnConfigurationJSONRequestBody CreateCdnConfigurationJSONBody
 
 // AllocateElasticIpRequestBody defines body for AllocateElasticIp for application/json ContentType.
 type AllocateElasticIpJSONRequestBody AllocateElasticIpJSONBody
@@ -1242,6 +1261,17 @@ type ClientInterface interface {
 
 	ImportSshKey(ctx context.Context, body ImportSshKeyJSONRequestBody) (*http.Response, error)
 
+	// ListCdnConfigurations request
+	ListCdnConfigurations(ctx context.Context) (*http.Response, error)
+
+	// CreateCdnConfiguration request  with any body
+	CreateCdnConfigurationWithBody(ctx context.Context, contentType string, body io.Reader) (*http.Response, error)
+
+	CreateCdnConfiguration(ctx context.Context, body CreateCdnConfigurationJSONRequestBody) (*http.Response, error)
+
+	// DestroyCdnConfiguration request
+	DestroyCdnConfiguration(ctx context.Context, bucket string) (*http.Response, error)
+
 	// ListElasticIps request
 	ListElasticIps(ctx context.Context) (*http.Response, error)
 
@@ -1399,8 +1429,8 @@ type ClientInterface interface {
 
 	CreateLoadBalancer(ctx context.Context, body CreateLoadBalancerJSONRequestBody) (*http.Response, error)
 
-	// DestroyLoadBalancer request
-	DestroyLoadBalancer(ctx context.Context, id string) (*http.Response, error)
+	// DeleteLoadBalancer request
+	DeleteLoadBalancer(ctx context.Context, id string) (*http.Response, error)
 
 	// GetLoadBalancer request
 	GetLoadBalancer(ctx context.Context, id string) (*http.Response, error)
@@ -1426,14 +1456,14 @@ type ClientInterface interface {
 
 	UpdateLoadBalancerService(ctx context.Context, id string, serviceId string, body UpdateLoadBalancerServiceJSONRequestBody) (*http.Response, error)
 
+	// ListOperations request
+	ListOperations(ctx context.Context) (*http.Response, error)
+
+	// GetOperation request
+	GetOperation(ctx context.Context, id string) (*http.Response, error)
+
 	// Ping request
 	Ping(ctx context.Context) (*http.Response, error)
-
-	// ListResults request
-	ListResults(ctx context.Context) (*http.Response, error)
-
-	// GetResult request
-	GetResult(ctx context.Context, id string) (*http.Response, error)
 
 	// ListSecurityGroups request
 	ListSecurityGroups(ctx context.Context) (*http.Response, error)
@@ -1483,6 +1513,12 @@ type ClientInterface interface {
 	UpdateSnapshotDescriptionWithBody(ctx context.Context, id string, contentType string, body io.Reader) (*http.Response, error)
 
 	UpdateSnapshotDescription(ctx context.Context, id string, body UpdateSnapshotDescriptionJSONRequestBody) (*http.Response, error)
+
+	// GetExportSnapshot request
+	GetExportSnapshot(ctx context.Context, id string) (*http.Response, error)
+
+	// ExportSnapshot request
+	ExportSnapshot(ctx context.Context, id string) (*http.Response, error)
 
 	// ListSshKeys request
 	ListSshKeys(ctx context.Context) (*http.Response, error)
@@ -1735,6 +1771,66 @@ func (c *Client) ImportSshKeyWithBody(ctx context.Context, contentType string, b
 
 func (c *Client) ImportSshKey(ctx context.Context, body ImportSshKeyJSONRequestBody) (*http.Response, error) {
 	req, err := NewImportSshKeyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCdnConfigurations(ctx context.Context) (*http.Response, error) {
+	req, err := NewListCdnConfigurationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCdnConfigurationWithBody(ctx context.Context, contentType string, body io.Reader) (*http.Response, error) {
+	req, err := NewCreateCdnConfigurationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCdnConfiguration(ctx context.Context, body CreateCdnConfigurationJSONRequestBody) (*http.Response, error) {
+	req, err := NewCreateCdnConfigurationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DestroyCdnConfiguration(ctx context.Context, bucket string) (*http.Response, error) {
+	req, err := NewDestroyCdnConfigurationRequest(c.Server, bucket)
 	if err != nil {
 		return nil, err
 	}
@@ -2633,8 +2729,8 @@ func (c *Client) CreateLoadBalancer(ctx context.Context, body CreateLoadBalancer
 	return c.Client.Do(req)
 }
 
-func (c *Client) DestroyLoadBalancer(ctx context.Context, id string) (*http.Response, error) {
-	req, err := NewDestroyLoadBalancerRequest(c.Server, id)
+func (c *Client) DeleteLoadBalancer(ctx context.Context, id string) (*http.Response, error) {
+	req, err := NewDeleteLoadBalancerRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -2783,38 +2879,38 @@ func (c *Client) UpdateLoadBalancerService(ctx context.Context, id string, servi
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListOperations(ctx context.Context) (*http.Response, error) {
+	req, err := NewListOperationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetOperation(ctx context.Context, id string) (*http.Response, error) {
+	req, err := NewGetOperationRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) Ping(ctx context.Context) (*http.Response, error) {
 	req, err := NewPingRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if c.RequestEditor != nil {
-		err = c.RequestEditor(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListResults(ctx context.Context) (*http.Response, error) {
-	req, err := NewListResultsRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if c.RequestEditor != nil {
-		err = c.RequestEditor(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetResult(ctx context.Context, id string) (*http.Response, error) {
-	req, err := NewGetResultRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -3085,6 +3181,36 @@ func (c *Client) UpdateSnapshotDescriptionWithBody(ctx context.Context, id strin
 
 func (c *Client) UpdateSnapshotDescription(ctx context.Context, id string, body UpdateSnapshotDescriptionJSONRequestBody) (*http.Response, error) {
 	req, err := NewUpdateSnapshotDescriptionRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetExportSnapshot(ctx context.Context, id string) (*http.Response, error) {
+	req, err := NewGetExportSnapshotRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if c.RequestEditor != nil {
+		err = c.RequestEditor(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ExportSnapshot(ctx context.Context, id string) (*http.Response, error) {
+	req, err := NewExportSnapshotRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -3622,6 +3748,106 @@ func NewImportSshKeyRequestWithBody(server string, contentType string, body io.R
 	}
 
 	req.Header.Add("Content-Type", contentType)
+	return req, nil
+}
+
+// NewListCdnConfigurationsRequest generates requests for ListCdnConfigurations
+func NewListCdnConfigurationsRequest(server string) (*http.Request, error) {
+	var err error
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/cdn-configuration")
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateCdnConfigurationRequest calls the generic CreateCdnConfiguration builder with application/json body
+func NewCreateCdnConfigurationRequest(server string, body CreateCdnConfigurationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateCdnConfigurationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateCdnConfigurationRequestWithBody generates requests for CreateCdnConfiguration with any type of body
+func NewCreateCdnConfigurationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/cdn-configuration")
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryUrl.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+	return req, nil
+}
+
+// NewDestroyCdnConfigurationRequest generates requests for DestroyCdnConfiguration
+func NewDestroyCdnConfigurationRequest(server string, bucket string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParam("simple", false, "bucket", bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/cdn-configuration/%s", pathParam0)
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return req, nil
 }
 
@@ -5217,8 +5443,8 @@ func NewCreateLoadBalancerRequestWithBody(server string, contentType string, bod
 	return req, nil
 }
 
-// NewDestroyLoadBalancerRequest generates requests for DestroyLoadBalancer
-func NewDestroyLoadBalancerRequest(server string, id string) (*http.Request, error) {
+// NewDeleteLoadBalancerRequest generates requests for DeleteLoadBalancer
+func NewDeleteLoadBalancerRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5512,8 +5738,8 @@ func NewUpdateLoadBalancerServiceRequestWithBody(server string, id string, servi
 	return req, nil
 }
 
-// NewPingRequest generates requests for Ping
-func NewPingRequest(server string) (*http.Request, error) {
+// NewListOperationsRequest generates requests for ListOperations
+func NewListOperationsRequest(server string) (*http.Request, error) {
 	var err error
 
 	queryUrl, err := url.Parse(server)
@@ -5521,7 +5747,7 @@ func NewPingRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	basePath := fmt.Sprintf("/ping")
+	basePath := fmt.Sprintf("/operation")
 	if basePath[0] == '/' {
 		basePath = basePath[1:]
 	}
@@ -5539,35 +5765,8 @@ func NewPingRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewListResultsRequest generates requests for ListResults
-func NewListResultsRequest(server string) (*http.Request, error) {
-	var err error
-
-	queryUrl, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	basePath := fmt.Sprintf("/result")
-	if basePath[0] == '/' {
-		basePath = basePath[1:]
-	}
-
-	queryUrl, err = queryUrl.Parse(basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryUrl.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetResultRequest generates requests for GetResult
-func NewGetResultRequest(server string, id string) (*http.Request, error) {
+// NewGetOperationRequest generates requests for GetOperation
+func NewGetOperationRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5582,7 +5781,34 @@ func NewGetResultRequest(server string, id string) (*http.Request, error) {
 		return nil, err
 	}
 
-	basePath := fmt.Sprintf("/result/%s", pathParam0)
+	basePath := fmt.Sprintf("/operation/%s", pathParam0)
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPingRequest generates requests for Ping
+func NewPingRequest(server string) (*http.Request, error) {
+	var err error
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/ping")
 	if basePath[0] == '/' {
 		basePath = basePath[1:]
 	}
@@ -6088,6 +6314,74 @@ func NewUpdateSnapshotDescriptionRequestWithBody(server string, id string, conte
 	return req, nil
 }
 
+// NewGetExportSnapshotRequest generates requests for GetExportSnapshot
+func NewGetExportSnapshotRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParam("simple", false, "id", id)
+	if err != nil {
+		return nil, err
+	}
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/snapshot/%s:export", pathParam0)
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewExportSnapshotRequest generates requests for ExportSnapshot
+func NewExportSnapshotRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParam("simple", false, "id", id)
+	if err != nil {
+		return nil, err
+	}
+
+	queryUrl, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := fmt.Sprintf("/snapshot/%s:export", pathParam0)
+	if basePath[0] == '/' {
+		basePath = basePath[1:]
+	}
+
+	queryUrl, err = queryUrl.Parse(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListSshKeysRequest generates requests for ListSshKeys
 func NewListSshKeysRequest(server string) (*http.Request, error) {
 	var err error
@@ -6444,6 +6738,17 @@ type ClientWithResponsesInterface interface {
 
 	ImportSshKeyWithResponse(ctx context.Context, body ImportSshKeyJSONRequestBody) (*ImportSshKeyResponse, error)
 
+	// ListCdnConfigurations request
+	ListCdnConfigurationsWithResponse(ctx context.Context) (*ListCdnConfigurationsResponse, error)
+
+	// CreateCdnConfiguration request  with any body
+	CreateCdnConfigurationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader) (*CreateCdnConfigurationResponse, error)
+
+	CreateCdnConfigurationWithResponse(ctx context.Context, body CreateCdnConfigurationJSONRequestBody) (*CreateCdnConfigurationResponse, error)
+
+	// DestroyCdnConfiguration request
+	DestroyCdnConfigurationWithResponse(ctx context.Context, bucket string) (*DestroyCdnConfigurationResponse, error)
+
 	// ListElasticIps request
 	ListElasticIpsWithResponse(ctx context.Context) (*ListElasticIpsResponse, error)
 
@@ -6601,8 +6906,8 @@ type ClientWithResponsesInterface interface {
 
 	CreateLoadBalancerWithResponse(ctx context.Context, body CreateLoadBalancerJSONRequestBody) (*CreateLoadBalancerResponse, error)
 
-	// DestroyLoadBalancer request
-	DestroyLoadBalancerWithResponse(ctx context.Context, id string) (*DestroyLoadBalancerResponse, error)
+	// DeleteLoadBalancer request
+	DeleteLoadBalancerWithResponse(ctx context.Context, id string) (*DeleteLoadBalancerResponse, error)
 
 	// GetLoadBalancer request
 	GetLoadBalancerWithResponse(ctx context.Context, id string) (*GetLoadBalancerResponse, error)
@@ -6628,14 +6933,14 @@ type ClientWithResponsesInterface interface {
 
 	UpdateLoadBalancerServiceWithResponse(ctx context.Context, id string, serviceId string, body UpdateLoadBalancerServiceJSONRequestBody) (*UpdateLoadBalancerServiceResponse, error)
 
+	// ListOperations request
+	ListOperationsWithResponse(ctx context.Context) (*ListOperationsResponse, error)
+
+	// GetOperation request
+	GetOperationWithResponse(ctx context.Context, id string) (*GetOperationResponse, error)
+
 	// Ping request
 	PingWithResponse(ctx context.Context) (*PingResponse, error)
-
-	// ListResults request
-	ListResultsWithResponse(ctx context.Context) (*ListResultsResponse, error)
-
-	// GetResult request
-	GetResultWithResponse(ctx context.Context, id string) (*GetResultResponse, error)
 
 	// ListSecurityGroups request
 	ListSecurityGroupsWithResponse(ctx context.Context) (*ListSecurityGroupsResponse, error)
@@ -6685,6 +6990,12 @@ type ClientWithResponsesInterface interface {
 	UpdateSnapshotDescriptionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader) (*UpdateSnapshotDescriptionResponse, error)
 
 	UpdateSnapshotDescriptionWithResponse(ctx context.Context, id string, body UpdateSnapshotDescriptionJSONRequestBody) (*UpdateSnapshotDescriptionResponse, error)
+
+	// GetExportSnapshot request
+	GetExportSnapshotWithResponse(ctx context.Context, id string) (*GetExportSnapshotResponse, error)
+
+	// ExportSnapshot request
+	ExportSnapshotWithResponse(ctx context.Context, id string) (*ExportSnapshotResponse, error)
 
 	// ListSshKeys request
 	ListSshKeysWithResponse(ctx context.Context) (*ListSshKeysResponse, error)
@@ -6781,7 +7092,7 @@ func (r CreateAntiAffinityGroupResponse) StatusCode() int {
 type DestroyAntiAffinityGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -6895,7 +7206,7 @@ func (r GenerateApiKeyResponse) StatusCode() int {
 type RevokeApiKeyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -6980,6 +7291,74 @@ func (r ImportSshKeyResponse) StatusCode() int {
 	return 0
 }
 
+type ListCdnConfigurationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		CdnConfigurations *[]CdnConfiguration `json:"cdn-configurations,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCdnConfigurationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCdnConfigurationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateCdnConfigurationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Operation
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateCdnConfigurationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateCdnConfigurationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DestroyCdnConfigurationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Operation
+}
+
+// Status returns HTTPResponse.Status
+func (r DestroyCdnConfigurationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DestroyCdnConfigurationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListElasticIpsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -7007,7 +7386,7 @@ func (r ListElasticIpsResponse) StatusCode() int {
 type AllocateElasticIpResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7029,7 +7408,7 @@ func (r AllocateElasticIpResponse) StatusCode() int {
 type ReleaseElasticIpResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7187,7 +7566,7 @@ func (r ListInstancesResponse) StatusCode() int {
 type CreateInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7255,7 +7634,7 @@ func (r CreateInstancePoolResponse) StatusCode() int {
 type DestroyInstancePoolResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7411,7 +7790,7 @@ func (r ListInstanceTypesResponse) StatusCode() int {
 type DestroyInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7434,7 +7813,6 @@ type GetInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Instance
-	JSON404      *Result
 }
 
 // Status returns HTTPResponse.Status
@@ -7456,8 +7834,7 @@ func (r GetInstanceResponse) StatusCode() int {
 type AllocateIpv6OnInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
-	JSONDefault  *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7479,7 +7856,7 @@ func (r AllocateIpv6OnInstanceResponse) StatusCode() int {
 type AttachElasticIpOnInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7501,7 +7878,7 @@ func (r AttachElasticIpOnInstanceResponse) StatusCode() int {
 type CreateSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7545,7 +7922,7 @@ func (r UpdateInstanceDescriptionResponse) StatusCode() int {
 type DetachElasticIpFromInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7589,7 +7966,7 @@ func (r UpdateInstanceTypeResponse) StatusCode() int {
 type RebootInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7611,7 +7988,7 @@ func (r RebootInstanceResponse) StatusCode() int {
 type ResetInstancePasswordResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7633,7 +8010,7 @@ func (r ResetInstancePasswordResponse) StatusCode() int {
 type RestoreInstanceFromSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7655,7 +8032,7 @@ func (r RestoreInstanceFromSnapshotResponse) StatusCode() int {
 type RestoreInstanceFromTemplateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7677,7 +8054,7 @@ func (r RestoreInstanceFromTemplateResponse) StatusCode() int {
 type RemoveInstanceReverseDnsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7699,7 +8076,7 @@ func (r RemoveInstanceReverseDnsResponse) StatusCode() int {
 type UpdateInstanceReverseDnsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7743,8 +8120,7 @@ func (r UpdateInstanceSecurityGroupsResponse) StatusCode() int {
 type StartInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
-	JSON400      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7766,8 +8142,7 @@ func (r StartInstanceResponse) StatusCode() int {
 type StopInstanceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
-	JSON400      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7835,7 +8210,7 @@ func (r ListLoadBalancersResponse) StatusCode() int {
 type CreateLoadBalancerResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7854,14 +8229,14 @@ func (r CreateLoadBalancerResponse) StatusCode() int {
 	return 0
 }
 
-type DestroyLoadBalancerResponse struct {
+type DeleteLoadBalancerResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
-func (r DestroyLoadBalancerResponse) Status() string {
+func (r DeleteLoadBalancerResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -7869,7 +8244,7 @@ func (r DestroyLoadBalancerResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DestroyLoadBalancerResponse) StatusCode() int {
+func (r DeleteLoadBalancerResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -7901,7 +8276,7 @@ func (r GetLoadBalancerResponse) StatusCode() int {
 type UpdateLoadBalancerResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7923,7 +8298,7 @@ func (r UpdateLoadBalancerResponse) StatusCode() int {
 type AddServiceToLoadBalancerResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7945,7 +8320,7 @@ func (r AddServiceToLoadBalancerResponse) StatusCode() int {
 type DeleteLoadBalancerServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -7989,7 +8364,7 @@ func (r GetLoadBalancerServiceResponse) StatusCode() int {
 type UpdateLoadBalancerServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8002,6 +8377,52 @@ func (r UpdateLoadBalancerServiceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateLoadBalancerServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListOperationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Operations *[]Operation `json:"operations,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListOperationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListOperationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetOperationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Operation
+}
+
+// Status returns HTTPResponse.Status
+func (r GetOperationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetOperationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -8024,52 +8445,6 @@ func (r PingResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PingResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListResultsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Results *[]Result `json:"results,omitempty"`
-	}
-}
-
-// Status returns HTTPResponse.Status
-func (r ListResultsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListResultsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetResultResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Result
-}
-
-// Status returns HTTPResponse.Status
-func (r GetResultResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetResultResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -8125,7 +8500,7 @@ func (r CreateSecurityGroupResponse) StatusCode() int {
 type DestroySecurityGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8305,7 +8680,7 @@ func (r ListSnapshotsResponse) StatusCode() int {
 type DestroySnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8328,7 +8703,6 @@ type GetSnapshotResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Snapshot
-	JSON404      *Result
 }
 
 // Status returns HTTPResponse.Status
@@ -8369,6 +8743,50 @@ func (r UpdateSnapshotDescriptionResponse) StatusCode() int {
 	return 0
 }
 
+type GetExportSnapshotResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *SnapshotExport
+}
+
+// Status returns HTTPResponse.Status
+func (r GetExportSnapshotResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetExportSnapshotResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ExportSnapshotResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Operation
+}
+
+// Status returns HTTPResponse.Status
+func (r ExportSnapshotResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExportSnapshotResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListSshKeysResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -8396,7 +8814,7 @@ func (r ListSshKeysResponse) StatusCode() int {
 type DeleteSshKeyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8442,7 +8860,7 @@ func (r ListTemplatesResponse) StatusCode() int {
 type RegisterTemplateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8464,7 +8882,7 @@ func (r RegisterTemplateResponse) StatusCode() int {
 type DestroyTemplateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON202      *Result
+	JSON200      *Operation
 }
 
 // Status returns HTTPResponse.Status
@@ -8667,6 +9085,41 @@ func (c *ClientWithResponses) ImportSshKeyWithResponse(ctx context.Context, body
 		return nil, err
 	}
 	return ParseImportSshKeyResponse(rsp)
+}
+
+// ListCdnConfigurationsWithResponse request returning *ListCdnConfigurationsResponse
+func (c *ClientWithResponses) ListCdnConfigurationsWithResponse(ctx context.Context) (*ListCdnConfigurationsResponse, error) {
+	rsp, err := c.ListCdnConfigurations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCdnConfigurationsResponse(rsp)
+}
+
+// CreateCdnConfigurationWithBodyWithResponse request with arbitrary body returning *CreateCdnConfigurationResponse
+func (c *ClientWithResponses) CreateCdnConfigurationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader) (*CreateCdnConfigurationResponse, error) {
+	rsp, err := c.CreateCdnConfigurationWithBody(ctx, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCdnConfigurationResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateCdnConfigurationWithResponse(ctx context.Context, body CreateCdnConfigurationJSONRequestBody) (*CreateCdnConfigurationResponse, error) {
+	rsp, err := c.CreateCdnConfiguration(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCdnConfigurationResponse(rsp)
+}
+
+// DestroyCdnConfigurationWithResponse request returning *DestroyCdnConfigurationResponse
+func (c *ClientWithResponses) DestroyCdnConfigurationWithResponse(ctx context.Context, bucket string) (*DestroyCdnConfigurationResponse, error) {
+	rsp, err := c.DestroyCdnConfiguration(ctx, bucket)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDestroyCdnConfigurationResponse(rsp)
 }
 
 // ListElasticIpsWithResponse request returning *ListElasticIpsResponse
@@ -9180,13 +9633,13 @@ func (c *ClientWithResponses) CreateLoadBalancerWithResponse(ctx context.Context
 	return ParseCreateLoadBalancerResponse(rsp)
 }
 
-// DestroyLoadBalancerWithResponse request returning *DestroyLoadBalancerResponse
-func (c *ClientWithResponses) DestroyLoadBalancerWithResponse(ctx context.Context, id string) (*DestroyLoadBalancerResponse, error) {
-	rsp, err := c.DestroyLoadBalancer(ctx, id)
+// DeleteLoadBalancerWithResponse request returning *DeleteLoadBalancerResponse
+func (c *ClientWithResponses) DeleteLoadBalancerWithResponse(ctx context.Context, id string) (*DeleteLoadBalancerResponse, error) {
+	rsp, err := c.DeleteLoadBalancer(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDestroyLoadBalancerResponse(rsp)
+	return ParseDeleteLoadBalancerResponse(rsp)
 }
 
 // GetLoadBalancerWithResponse request returning *GetLoadBalancerResponse
@@ -9267,6 +9720,24 @@ func (c *ClientWithResponses) UpdateLoadBalancerServiceWithResponse(ctx context.
 	return ParseUpdateLoadBalancerServiceResponse(rsp)
 }
 
+// ListOperationsWithResponse request returning *ListOperationsResponse
+func (c *ClientWithResponses) ListOperationsWithResponse(ctx context.Context) (*ListOperationsResponse, error) {
+	rsp, err := c.ListOperations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListOperationsResponse(rsp)
+}
+
+// GetOperationWithResponse request returning *GetOperationResponse
+func (c *ClientWithResponses) GetOperationWithResponse(ctx context.Context, id string) (*GetOperationResponse, error) {
+	rsp, err := c.GetOperation(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetOperationResponse(rsp)
+}
+
 // PingWithResponse request returning *PingResponse
 func (c *ClientWithResponses) PingWithResponse(ctx context.Context) (*PingResponse, error) {
 	rsp, err := c.Ping(ctx)
@@ -9274,24 +9745,6 @@ func (c *ClientWithResponses) PingWithResponse(ctx context.Context) (*PingRespon
 		return nil, err
 	}
 	return ParsePingResponse(rsp)
-}
-
-// ListResultsWithResponse request returning *ListResultsResponse
-func (c *ClientWithResponses) ListResultsWithResponse(ctx context.Context) (*ListResultsResponse, error) {
-	rsp, err := c.ListResults(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListResultsResponse(rsp)
-}
-
-// GetResultWithResponse request returning *GetResultResponse
-func (c *ClientWithResponses) GetResultWithResponse(ctx context.Context, id string) (*GetResultResponse, error) {
-	rsp, err := c.GetResult(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetResultResponse(rsp)
 }
 
 // ListSecurityGroupsWithResponse request returning *ListSecurityGroupsResponse
@@ -9449,6 +9902,24 @@ func (c *ClientWithResponses) UpdateSnapshotDescriptionWithResponse(ctx context.
 		return nil, err
 	}
 	return ParseUpdateSnapshotDescriptionResponse(rsp)
+}
+
+// GetExportSnapshotWithResponse request returning *GetExportSnapshotResponse
+func (c *ClientWithResponses) GetExportSnapshotWithResponse(ctx context.Context, id string) (*GetExportSnapshotResponse, error) {
+	rsp, err := c.GetExportSnapshot(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetExportSnapshotResponse(rsp)
+}
+
+// ExportSnapshotWithResponse request returning *ExportSnapshotResponse
+func (c *ClientWithResponses) ExportSnapshotWithResponse(ctx context.Context, id string) (*ExportSnapshotResponse, error) {
+	rsp, err := c.ExportSnapshot(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExportSnapshotResponse(rsp)
 }
 
 // ListSshKeysWithResponse request returning *ListSshKeysResponse
@@ -9617,7 +10088,7 @@ func ParseDestroyAntiAffinityGroupResponse(rsp *http.Response) (*DestroyAntiAffi
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9751,7 +10222,7 @@ func ParseRevokeApiKeyResponse(rsp *http.Response) (*RevokeApiKeyResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9840,6 +10311,86 @@ func ParseImportSshKeyResponse(rsp *http.Response) (*ImportSshKeyResponse, error
 	return response, nil
 }
 
+// ParseListCdnConfigurationsResponse parses an HTTP response from a ListCdnConfigurationsWithResponse call
+func ParseListCdnConfigurationsResponse(rsp *http.Response) (*ListCdnConfigurationsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCdnConfigurationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			CdnConfigurations *[]CdnConfiguration `json:"cdn-configurations,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateCdnConfigurationResponse parses an HTTP response from a CreateCdnConfigurationWithResponse call
+func ParseCreateCdnConfigurationResponse(rsp *http.Response) (*CreateCdnConfigurationResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateCdnConfigurationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDestroyCdnConfigurationResponse parses an HTTP response from a DestroyCdnConfigurationWithResponse call
+func ParseDestroyCdnConfigurationResponse(rsp *http.Response) (*DestroyCdnConfigurationResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DestroyCdnConfigurationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListElasticIpsResponse parses an HTTP response from a ListElasticIpsWithResponse call
 func ParseListElasticIpsResponse(rsp *http.Response) (*ListElasticIpsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -9882,12 +10433,12 @@ func ParseAllocateElasticIpResponse(rsp *http.Response) (*AllocateElasticIpRespo
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -9909,7 +10460,7 @@ func ParseReleaseElasticIpResponse(rsp *http.Response) (*ReleaseElasticIpRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10094,12 +10645,12 @@ func ParseCreateInstanceResponse(rsp *http.Response) (*CreateInstanceResponse, e
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10174,12 +10725,12 @@ func ParseDestroyInstancePoolResponse(rsp *http.Response) (*DestroyInstancePoolR
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10358,12 +10909,12 @@ func ParseDestroyInstanceResponse(rsp *http.Response) (*DestroyInstanceResponse,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10391,13 +10942,6 @@ func ParseGetInstanceResponse(rsp *http.Response) (*GetInstanceResponse, error) 
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Result
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	}
 
 	return response, nil
@@ -10417,19 +10961,12 @@ func ParseAllocateIpv6OnInstanceResponse(rsp *http.Response) (*AllocateIpv6OnIns
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json"):
-		var dest Result
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10450,12 +10987,12 @@ func ParseAttachElasticIpOnInstanceResponse(rsp *http.Response) (*AttachElasticI
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10476,12 +11013,12 @@ func ParseCreateSnapshotResponse(rsp *http.Response) (*CreateSnapshotResponse, e
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10528,12 +11065,12 @@ func ParseDetachElasticIpFromInstanceResponse(rsp *http.Response) (*DetachElasti
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10580,12 +11117,12 @@ func ParseRebootInstanceResponse(rsp *http.Response) (*RebootInstanceResponse, e
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10606,12 +11143,12 @@ func ParseResetInstancePasswordResponse(rsp *http.Response) (*ResetInstancePassw
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10632,12 +11169,12 @@ func ParseRestoreInstanceFromSnapshotResponse(rsp *http.Response) (*RestoreInsta
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10658,12 +11195,12 @@ func ParseRestoreInstanceFromTemplateResponse(rsp *http.Response) (*RestoreInsta
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10684,12 +11221,12 @@ func ParseRemoveInstanceReverseDnsResponse(rsp *http.Response) (*RemoveInstanceR
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10710,12 +11247,12 @@ func ParseUpdateInstanceReverseDnsResponse(rsp *http.Response) (*UpdateInstanceR
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10762,19 +11299,12 @@ func ParseStartInstanceResponse(rsp *http.Response) (*StartInstanceResponse, err
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Result
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10795,19 +11325,12 @@ func ParseStopInstanceResponse(rsp *http.Response) (*StopInstanceResponse, error
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest Result
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -10883,7 +11406,7 @@ func ParseCreateLoadBalancerResponse(rsp *http.Response) (*CreateLoadBalancerRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10894,22 +11417,22 @@ func ParseCreateLoadBalancerResponse(rsp *http.Response) (*CreateLoadBalancerRes
 	return response, nil
 }
 
-// ParseDestroyLoadBalancerResponse parses an HTTP response from a DestroyLoadBalancerWithResponse call
-func ParseDestroyLoadBalancerResponse(rsp *http.Response) (*DestroyLoadBalancerResponse, error) {
+// ParseDeleteLoadBalancerResponse parses an HTTP response from a DeleteLoadBalancerWithResponse call
+func ParseDeleteLoadBalancerResponse(rsp *http.Response) (*DeleteLoadBalancerResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DestroyLoadBalancerResponse{
+	response := &DeleteLoadBalancerResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10961,7 +11484,7 @@ func ParseUpdateLoadBalancerResponse(rsp *http.Response) (*UpdateLoadBalancerRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10987,7 +11510,7 @@ func ParseAddServiceToLoadBalancerResponse(rsp *http.Response) (*AddServiceToLoa
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11013,7 +11536,7 @@ func ParseDeleteLoadBalancerServiceResponse(rsp *http.Response) (*DeleteLoadBala
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11065,7 +11588,61 @@ func ParseUpdateLoadBalancerServiceResponse(rsp *http.Response) (*UpdateLoadBala
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListOperationsResponse parses an HTTP response from a ListOperationsWithResponse call
+func ParseListOperationsResponse(rsp *http.Response) (*ListOperationsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListOperationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Operations *[]Operation `json:"operations,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetOperationResponse parses an HTTP response from a GetOperationWithResponse call
+func ParseGetOperationResponse(rsp *http.Response) (*GetOperationResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetOperationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11092,60 +11669,6 @@ func ParsePingResponse(rsp *http.Response) (*PingResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListResultsResponse parses an HTTP response from a ListResultsWithResponse call
-func ParseListResultsResponse(rsp *http.Response) (*ListResultsResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListResultsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Results *[]Result `json:"results,omitempty"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetResultResponse parses an HTTP response from a GetResultWithResponse call
-func ParseGetResultResponse(rsp *http.Response) (*GetResultResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetResultResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11225,7 +11748,7 @@ func ParseDestroySecurityGroupResponse(rsp *http.Response) (*DestroySecurityGrou
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11436,12 +11959,12 @@ func ParseDestroySnapshotResponse(rsp *http.Response) (*DestroySnapshotResponse,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -11469,13 +11992,6 @@ func ParseGetSnapshotResponse(rsp *http.Response) (*GetSnapshotResponse, error) 
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest Result
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	}
 
 	return response, nil
@@ -11497,6 +12013,58 @@ func ParseUpdateSnapshotDescriptionResponse(rsp *http.Response) (*UpdateSnapshot
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Snapshot
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetExportSnapshotResponse parses an HTTP response from a GetExportSnapshotWithResponse call
+func ParseGetExportSnapshotResponse(rsp *http.Response) (*GetExportSnapshotResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetExportSnapshotResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SnapshotExport
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseExportSnapshotResponse parses an HTTP response from a ExportSnapshotWithResponse call
+func ParseExportSnapshotResponse(rsp *http.Response) (*ExportSnapshotResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExportSnapshotResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11550,7 +12118,7 @@ func ParseDeleteSshKeyResponse(rsp *http.Response) (*DeleteSshKeyResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Result
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11603,12 +12171,12 @@ func ParseRegisterTemplateResponse(rsp *http.Response) (*RegisterTemplateRespons
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 
@@ -11629,12 +12197,12 @@ func ParseDestroyTemplateResponse(rsp *http.Response) (*DestroyTemplateResponse,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest Result
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Operation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	}
 

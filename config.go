@@ -26,6 +26,7 @@ type Config struct {
 	TemplateName            string `mapstructure:"template_name"`
 	TemplateDescription     string `mapstructure:"template_description"`
 	TemplateUsername        string `mapstructure:"template_username"`
+	TemplateBootMode        string `mapstructure:"template_bootmode"`
 	TemplateDisablePassword bool   `mapstructure:"template_disable_password"`
 	TemplateDisableSSHKey   bool   `mapstructure:"template_disable_sshkey"`
 }
@@ -58,6 +59,10 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 
 	if config.SOSEndpoint == "" {
 		config.SOSEndpoint = "https://sos-" + config.TemplateZone + ".exo.io"
+	}
+
+	if config.TemplateBootMode == "" {
+		config.TemplateBootMode = "legacy"
 	}
 
 	if len(errs.Errors) > 0 {
