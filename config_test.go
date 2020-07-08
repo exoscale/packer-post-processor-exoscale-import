@@ -30,5 +30,5 @@ func TestNewConfig(t *testing.T) {
 	require.NotNil(t, config)
 	require.Equal(t, defaultAPIEndpoint, config.APIEndpoint)
 	require.Equal(t, "https://sos-"+config.TemplateZone+".exo.io", config.SOSEndpoint)
-	require.Equal(t, "legacy", config.TemplateBootMode)
+	require.Equal(t, defaultTemplateBootMode, config.TemplateBootMode)
 }
