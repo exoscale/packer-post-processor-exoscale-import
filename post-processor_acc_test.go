@@ -67,6 +67,12 @@ func testAccCheckPostProcessorArtifact(t *testing.T, artifact packer.Artifact) e
 			a.template.DisplayText)
 	}
 
+	if a.template.BootMode != defaultTemplateBootMode {
+		return fmt.Errorf("expected template boot mode %q, got %q",
+			defaultTemplateBootMode,
+			a.template.BootMode)
+	}
+
 	if username, ok := a.template.Details["username"]; !ok {
 		return errors.New("artifact username not set")
 	} else if username != testAccTemplateUsername {

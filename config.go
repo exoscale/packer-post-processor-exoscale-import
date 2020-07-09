@@ -11,7 +11,10 @@ import (
 	"github.com/hashicorp/packer/packer"
 )
 
-var defaultAPIEndpoint = "https://api.exoscale.com/v1"
+const (
+	defaultAPIEndpoint      = "https://api.exoscale.com/v1"
+	defaultTemplateBootMode = "legacy"
+)
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
@@ -26,6 +29,7 @@ type Config struct {
 	TemplateName            string `mapstructure:"template_name"`
 	TemplateDescription     string `mapstructure:"template_description"`
 	TemplateUsername        string `mapstructure:"template_username"`
+	TemplateBootMode        string `mapstructure:"template_boot_mode"`
 	TemplateDisablePassword bool   `mapstructure:"template_disable_password"`
 	TemplateDisableSSHKey   bool   `mapstructure:"template_disable_sshkey"`
 }
@@ -58,6 +62,10 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 
 	if config.SOSEndpoint == "" {
 		config.SOSEndpoint = "https://sos-" + config.TemplateZone + ".exo.io"
+	}
+
+	if config.TemplateBootMode == "" {
+		config.TemplateBootMode = defaultTemplateBootMode
 	}
 
 	if len(errs.Errors) > 0 {

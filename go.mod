@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/aws/aws-sdk-go v1.31.4
 	github.com/deepmap/oapi-codegen v1.3.8 // indirect
-	github.com/exoscale/egoscale v0.26.1
+	github.com/exoscale/egoscale v0.26.6
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/hashicorp/hcl/v2 v2.5.1
 	github.com/hashicorp/packer v1.5.6

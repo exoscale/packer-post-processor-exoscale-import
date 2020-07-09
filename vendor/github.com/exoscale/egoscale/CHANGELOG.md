@@ -1,6 +1,31 @@
 Changelog
 =========
 
+0.26.6
+------
+
+- change: Add support for Compute instance templates boot mode (#436)
+
+0.26.5
+------
+
+- fix: bug in the ListNetworkLoadBalancers call (#435)
+
+0.26.4
+------
+
+- Fixing typo in previous release
+
+0.26.3
+------
+
+- change: updated API V2 async operation code (#434)
+
+0.26.2
+------
+
+- change: updated OpenAPI code-generated API V2 bindings
+
 0.26.1
 ------
 
