@@ -43,6 +43,12 @@ Required:
 - `api_secret` (string) - The API secret used to communicate with Exoscale
   services. This may also be set using the `EXOSCALE_API_SECRET`
   environmental variable.
+  
+- `api_endpoint` (string) - The API endpoint used to communicate with the
+  Exoscale API. Defaults to `https://api.exoscale.com/v1`.
+
+- `sos_endpoint` (string) - The endpoint used to communicate with SOS.
+  Defaults to `https://sos-<template_zone>.exo.io`.
 
 - `image_bucket` (string) - The name of the bucket in which to upload the
   template image to SOS. The bucket must exist when the post-processor is
@@ -53,15 +59,9 @@ Required:
 
 - `template_name` (string) - The name to be used for registering the template.
 
-### Optional parameters
-
-- `api_endpoint` (string) - The API endpoint used to communicate with the
-  Exoscale API. Defaults to `https://api.exoscale.com/v1`.
-
-- `sos_endpoint` (string) - The endpoint used to communicate with SOS.
-  Defaults to `https://sos-<template_zone>.exo.io`.
-
 - `template_description` (string) - The description of the registered template.
+
+### Optional parameters
 
 - `template_username` (string) - An optional username to be used to log into
   Compute instances using this template.
