@@ -53,6 +53,8 @@ Required:
 
 - `template_name` (string) - The name to be used for registering the template.
 
+- `template_description` (string) - The description of the registered template.
+
 ### Optional parameters
 
 - `api_endpoint` (string) - The API endpoint used to communicate with the
@@ -60,8 +62,6 @@ Required:
 
 - `sos_endpoint` (string) - The endpoint used to communicate with SOS.
   Defaults to `https://sos-<template_zone>.exo.io`.
-
-- `template_description` (string) - The description of the registered template.
 
 - `template_username` (string) - An optional username to be used to log into
   Compute instances using this template.
