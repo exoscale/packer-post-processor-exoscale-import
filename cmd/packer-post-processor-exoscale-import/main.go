@@ -1,21 +1,20 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"os"
+
+	"github.com/hashicorp/packer-plugin-sdk/plugin"
 
 	exoscaleimport "github.com/exoscale/packer-post-processor-exoscale-import"
-	"github.com/hashicorp/packer/packer/plugin"
 )
 
 func main() {
-	server, err := plugin.Server()
-	if err != nil {
-		log.Fatal(err)
-	}
+	ps := plugin.NewSet()
+	ps.RegisterPostProcessor(plugin.DEFAULT_NAME, new(exoscaleimport.PostProcessor))
 
-	if err := server.RegisterPostProcessor(new(exoscaleimport.PostProcessor)); err != nil {
-		log.Fatal(err)
+	if err := ps.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
-
-	server.Serve()
 }

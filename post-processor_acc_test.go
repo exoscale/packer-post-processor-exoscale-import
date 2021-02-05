@@ -7,8 +7,7 @@ import (
 	"os"
 	"testing"
 
-	pkrbuilderqemu "github.com/hashicorp/packer/builder/qemu"
-	"github.com/hashicorp/packer/packer"
+	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +24,7 @@ type testMockArtifact struct {
 	files []string
 }
 
-func (a *testMockArtifact) BuilderId() string          { return pkrbuilderqemu.BuilderId }
+func (a *testMockArtifact) BuilderId() string          { return qemuBuilderID }
 func (a *testMockArtifact) Files() []string            { return a.files }
 func (a *testMockArtifact) Id() string                 { return "" }
 func (a *testMockArtifact) String() string             { return "" }
@@ -102,7 +101,7 @@ func TestAccPostProcessor(t *testing.T) {
 
 	artifact, _, _, err := postProcessor.PostProcess(
 		context.Background(),
-		&packer.NoopUi{},
+		packer.TestUi(t),
 		&testMockArtifact{files: []string{testAccImageFile}})
 	require.NoError(t, err)
 

@@ -6,17 +6,21 @@ import (
 	"fmt"
 
 	"github.com/exoscale/egoscale"
-	"github.com/hashicorp/packer/builder/file"
-	"github.com/hashicorp/packer/builder/qemu"
-	"github.com/hashicorp/packer/common"
-	"github.com/hashicorp/packer/helper/multistep"
-	"github.com/hashicorp/packer/packer"
-	"github.com/hashicorp/packer/post-processor/artifice"
-	"github.com/hashicorp/packer/version"
+	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	"github.com/hashicorp/packer-plugin-sdk/multistep/commonsteps"
+	"github.com/hashicorp/packer-plugin-sdk/packer"
+	"github.com/hashicorp/packer-plugin-sdk/version"
+)
+
+const (
+	qemuBuilderID     = "transcend.qemu"
+	fileBuilderID     = "packer.file"
+	artificeBuilderID = "packer.post-processor.artifice"
 )
 
 func init() {
-	egoscale.UserAgent = "Exoscale-Packer-Post-Processor/" + version.FormattedVersion() + " " + egoscale.UserAgent
+	egoscale.UserAgent = fmt.Sprintf("Exoscale-Packer-Post-Processor/%s %s",
+		version.SDKVersion.FormattedVersion(), egoscale.UserAgent)
 }
 
 type PostProcessor struct {
@@ -39,7 +43,7 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 
 func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, a packer.Artifact) (packer.Artifact, bool, bool, error) {
 	switch a.BuilderId() {
-	case qemu.BuilderId, file.BuilderId, artifice.BuilderId:
+	case qemuBuilderID, fileBuilderID, artificeBuilderID:
 		break
 	default:
 		err := fmt.Errorf("unsupported artifact type %q: this post-processor only imports "+
@@ -61,7 +65,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, a packer.
 		new(stepDeleteImage),
 	}
 
-	p.runner = common.NewRunnerWithPauseFn(steps, p.config.PackerConfig, ui, state)
+	p.runner = commonsteps.NewRunnerWithPauseFn(steps, p.config.PackerConfig, ui, state)
 	p.runner.Run(ctx, state)
 
 	if rawErr, ok := state.GetOk("error"); ok {
