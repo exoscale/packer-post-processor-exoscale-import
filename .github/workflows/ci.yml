@@ -1,19 +1,25 @@
 name: CI
 
-on: [push]
+on:
+  push:
+    branches:
+    - '**'
+    paths-ignore:
+    - '**.md'
+    tags-ignore:
+    - 'v*' # Don't run CI tests on release tags
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v1
+      uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.27
-        args: --timeout 2m
+        version: v1.32
     - name: Run tests
       run: make lint test-verbose test-acc
       env:
@@ -22,7 +28,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Init go.mk submodule
       run: git submodule update --init --recursive go.mk
     - name: Build
