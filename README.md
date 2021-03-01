@@ -2,6 +2,8 @@
 
 [![Actions Status](https://github.com/exoscale/packer-post-processor-exoscale-import/workflows/CI/badge.svg)](https://github.com/exoscale/packer-post-processor-exoscale-import/actions?query=workflow%3ACI)
 
+> **IMPORTANT: this project has been superseded by the [multi-component Exoscale plugin](https://github.com/exoscale/packer-plugin-exoscale), and will not be updated anymore.**
+
 The `exoscale-import` post-processor plugin can be used with HashiCorp
 [Packer][packer] to take an image artifact from the *QEMU*, *Artifice*, or
 *File* builders and import it to Exoscale as a new
